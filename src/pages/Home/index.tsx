@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MdAddShoppingCart } from 'react-icons/md';
+import { toast } from 'react-toastify';
 
 import { ProductList } from './styles';
 import { api } from '../../services/api';
 import { formatPrice } from '../../util/format';
 import { useCart } from '../../hooks/useCart';
+import { ProductCard } from '../../components/ProductCard';
 
 interface Product {
   id: number;
@@ -22,44 +23,58 @@ interface CartItemsAmount {
 }
 
 const Home = (): JSX.Element => {
-  // const [products, setProducts] = useState<ProductFormatted[]>([]);
-  // const { addProduct, cart } = useCart();
+  const [products, setProducts] = useState<ProductFormatted[]>([]);
+  const { addProduct, cart } = useCart();
 
-  // const cartItemsAmount = cart.reduce((sumAmount, product) => {
-  //   // TODO
-  // }, {} as CartItemsAmount)
+  const cartItemsAmount = cart.reduce((sumAmount, product) => {
+    sumAmount[product.id] = product.amount;
+
+    return sumAmount;
+  }, {} as CartItemsAmount);
 
   useEffect(() => {
     async function loadProducts() {
-      // TODO
+      try {
+        const { data } = await api('/products');
+
+        const formattedData = data.map((item: Product) => {
+          const formattedPrice = formatPrice(item.price);
+
+          const newData = {
+            ...item,
+            priceFormatted: formattedPrice,
+          };
+
+          return newData;
+        });
+
+        setProducts(formattedData);
+      } catch (error) {
+        toast.error('Falha ao carregar os produtos!');
+      }
     }
 
     loadProducts();
   }, []);
 
   function handleAddProduct(id: number) {
-    // TODO
+    addProduct(id);
   }
 
   return (
     <ProductList>
-      <li>
-        <img src="https://rocketseat-cdn.s3-sa-east-1.amazonaws.com/modulo-redux/tenis1.jpg" alt="Tênis de Caminhada Leve Confortável" />
-        <strong>Tênis de Caminhada Leve Confortável</strong>
-        <span>R$ 179,90</span>
-        <button
-          type="button"
-          data-testid="add-product-button"
-        // onClick={() => handleAddProduct(product.id)}
-        >
-          <div data-testid="cart-product-quantity">
-            <MdAddShoppingCart size={16} color="#FFF" />
-            {/* {cartItemsAmount[product.id] || 0} */} 2
-          </div>
-
-          <span>ADICIONAR AO CARRINHO</span>
-        </button>
-      </li>
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          id={product.id}
+          title={product.title}
+          price={product.price}
+          priceFormatted={product.priceFormatted}
+          image={product.image}
+          handleAddProduct={handleAddProduct}
+          productCartAmount={cartItemsAmount[product.id]}
+        />
+      ))}
     </ProductList>
   );
 };
